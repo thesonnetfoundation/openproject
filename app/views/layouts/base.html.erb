@@ -153,9 +153,8 @@ See docs/COPYRIGHT.rdoc for more details.
           <notifications-container></notifications-container>
           <% if show_onboarding_modal? %>
             <modal-wrapper initialize="true"
-                           iframe-url="<%= OpenProject::Configuration.onboarding_video_url %>"
                            modal-class-name="onboarding-modal -highlight">
-              <%= render partial: '/onboarding/starting_video_modal' %>
+              <%= render partial: '/onboarding/configuration_modal' %>
             </modal-wrapper>
           <% end %>
           <div id="content" class="<%= initial_classes %>"
