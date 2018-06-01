@@ -26,7 +26,6 @@
 // See doc/COPYRIGHT.rdoc for more details.
 // ++
 
-import {FirstRouteService} from 'app/components/routing/first-route-service';
 import {StateDeclaration, StateRegistry, Transition, TransitionService, UrlService} from '@uirouter/core';
 import {WorkPackageSplitViewComponent} from 'core-components/routing/wp-split-view/wp-split-view.component';
 import {WorkPackagesListComponent} from 'core-components/routing/wp-list/wp-list.component';
@@ -43,6 +42,7 @@ import {NotificationsService} from "core-app/modules/common/notifications/notifi
 import {CurrentProjectService} from "core-components/projects/current-project.service";
 import {Injector} from "@angular/core";
 import {WorkPackagesBaseComponent} from "core-components/routing/main/work-packages-base.component";
+import {FirstRouteService} from "core-components/routing/first-route-service";
 
 const panels = {
   get overview() {

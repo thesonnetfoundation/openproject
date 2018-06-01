@@ -49,7 +49,7 @@ interface GroupEditInPlaceScope {
 function groupEditInPlace($timeout:any):any {
   return {
     restrict: 'E',
-    template: require('!!raw-loader!./group-edit-in-place.directive.html'),
+    templateUrl: './group-edit-in-place.directive.html',
     scope: {
       onvaluechange: '=',
       onupsale: '='

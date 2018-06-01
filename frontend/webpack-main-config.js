@@ -37,10 +37,10 @@ var dllManifest = require('./dist/vendors-dll-manifest.json')
 var TypeScriptDiscruptorPlugin = require('./webpack/typescript-disruptor.plugin.js');
 var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 var HappyPack = require('happypack');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var MiniCssExtractPlugin = require("mini-css-extract-plugin");
 var CleanWebpackPlugin = require('clean-webpack-plugin');
-// var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-// var CircularDependencyPlugin = require('circular-dependency-plugin');
+var UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+var AngularCompilerPlugin = require('@ngtools/webpack').AngularCompilerPlugin;
 
 var mode = (process.env['RAILS_ENV'] || 'production').toLowerCase();
 var production = (mode !== 'development');
@@ -64,7 +64,7 @@ var pluginAliases = _.reduce(pathConfig.pluginNamesPaths, function (entries, plu
 /** Extract available locales from openproject-translations plugin */
 var localeIds = ['en'];
 fs.readdirSync(translations_root).forEach(function (file) {
-  var matches = file.match( /^js-(.+)\.yml$/);
+  var matches = file.match(/^js-(.+)\.yml$/);
   if (matches && matches.length > 1) {
     localeIds.push(matches[1]);
   }
@@ -72,30 +72,35 @@ fs.readdirSync(translations_root).forEach(function (file) {
 
 var loaders = [
   {
-    test: /\.tsx?$/,
+    test: /(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/,
     include: [
-      path.resolve(__dirname, 'app'),
+      path.resolve(__dirname, 'common'),
+      path.resolve(__dirname, 'src'),
       path.resolve(__dirname, 'tests')
     ].concat(_.values(pathConfig.pluginNamesPaths)),
+    exclude: [
+      path.resolve(__dirname, 'legacy')
+    ],
     use: [
       {
-        loader: 'ng-annotate-loader'
-      },
-      {
-        loader: 'happypack/loader?id=ts'
+        loader: '@ngtools/webpack'
       }
+
     ]
   },
   {
     test: /\.css$/,
-    use: ExtractTextPlugin.extract({
-      fallback: 'style-loader',
-      use: [
-        'css-loader',
-        'postcss-loader'
-      ],
-      publicPath: '/assets/bundles/'
-    })
+    use: [
+      MiniCssExtractPlugin.loader,
+      'css-loader',
+      'postcss-loader'
+    ]
+  },
+  {
+    test: /\.html$/,
+    use: [
+      'raw-loader'
+    ]
   },
   {
     test: /\.png$/,
@@ -117,65 +122,18 @@ var loaders = [
     test: /\.jpg$/,
     use: ['file-loader']
   },
-  {
-    test: /[\/].*\.js$/,
-    use: [
-      {
-        loader: 'ng-annotate-loader',
-        options: { map: true }
-      }
-    ]
-  }
 ];
-
-for (var k in pathConfig.pluginNamesPaths) {
-  if (pathConfig.pluginNamesPaths.hasOwnProperty(k)) {
-    loaders.push({
-      test: new RegExp('templates\/plugin-' + k.replace(/^openproject\-/, '') + '/.*\.html$'),
-      use: [
-        {
-          loader: 'ngtemplate-loader',
-          options: {
-            module: 'openproject.templates',
-            relativeTo: path.join(pathConfig.pluginNamesPaths[k], 'frontend', 'app')
-          }
-        },
-        {
-          loader: 'html-loader',
-          options: {
-            minimize: false
-          }
-        }
-      ]
-    });
-  }
-}
-
-loaders.push({
-  test: /^((?!templates\/plugin).)*\.html$/,
-  use: [
-    {
-      loader: 'ngtemplate-loader',
-      options: {
-        module: 'openproject.templates',
-        relativeTo: path.resolve(__dirname, './app')
-      }
-    },
-    {
-      loader: 'html-loader',
-      options: {
-        minimize: false
-      }
-    }
-  ]
-});
 
 function getWebpackMainConfig() {
   config = {
-    context: path.resolve(__dirname, 'app'),
+    mode: mode,
+
+    devtool: 'source-map',
+
+    context: path.resolve(__dirname, 'src'),
 
     entry: _.merge({
-      'core-app': './openproject-app'
+      'core-app': './main'
     }, pluginEntries),
 
     output: {
@@ -200,8 +158,8 @@ function getWebpackMainConfig() {
 
       alias: _.merge({
         'locales': './../../config/locales',
-        'core-app': path.resolve(__dirname, 'app'),
-        'core-components': path.resolve(__dirname, 'app', 'components'),
+        'core-app': path.resolve(__dirname, 'src', 'app'),
+        'core-components': path.resolve(__dirname, 'src', 'app', 'components'),
 
         'select2': path.resolve(__dirname, 'vendor', 'select2'),
         'lodash': path.resolve(node_root, 'lodash', 'lodash.min.js'),
@@ -216,14 +174,19 @@ function getWebpackMainConfig() {
       "I18n": "I18n"
     },
 
-    plugins: [
-      // added to avoid module-duplication with plugins
-      new webpack.optimize.CommonsChunkPlugin({
-        name: "common",
-        filename: "openproject-common.js",
-        minChunks: 2
-      }),
+    optimization: {
+      splitChunks: {
+        cacheGroups: {
+          common: {
+            name: "common",
+            chunks: "initial",
+            minChunks: 2
+          }
+        }
+      }
+    },
 
+    plugins: [
       // Add a simple fail plugin to return a status code of 2 if
       // errors are detected (this includes TS warnings)
       // It is ONLY executed when `ENV[CI]` is set or `--bail` is used.
@@ -243,21 +206,6 @@ function getWebpackMainConfig() {
         PRODUCTION: !!production
       }),
 
-      new HappyPack({
-        id: 'ts',
-        threads: 4,
-        loaders: [
-          {
-            path: 'ts-loader',
-            query: {
-              happyPackMode: true,
-              logLevel: 'info',
-              configFile: path.resolve(__dirname, 'tsconfig.json')
-            }
-          }
-        ]
-      }),
-
       // Clean the output directory
       new CleanWebpackPlugin(['bundles'], {
         root: output_root,
@@ -267,21 +215,22 @@ function getWebpackMainConfig() {
 
       // Reference the vendors bundle
       new webpack.DllReferencePlugin({
-          context: path.resolve(__dirname),
-          manifest: dllManifest
+        context: path.resolve(__dirname),
+        manifest: dllManifest
       }),
 
-      // Parallel type checking for typescript
-      new ForkTsCheckerWebpackPlugin({
-        tsconfig: path.resolve(__dirname, 'tsconfig.json'),
-        // In happyPackMode, ts-loader no longer reports syntactic errors
-        checkSyntacticErrors: true
+      new AngularCompilerPlugin({
+        tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
+        mainPath: 'src/main.ts',
+        entryModule: 'src/app/app.module#AppModule',
+        sourceMap: true
       }),
 
-      // Extract CSS into its own bundle
-      new ExtractTextPlugin({
-        filename: 'openproject-[name].css',
-        disable: false
+      new MiniCssExtractPlugin({
+        // Options similar to the same options in webpackOptions.output
+        // both options are optional
+        filename: "openproject-[name].css",
+        chunkFilename: "[id].css"
       }),
 
       // Global variables provided in all entries
@@ -320,13 +269,22 @@ function getWebpackMainConfig() {
     console.log("Applying webpack.optimize plugins for production.");
     // Add compression and optimization plugins
     // to the webpack build.
+    config.optimization.minimizer = [
+      // we specify a custom UglifyJsPlugin here to get source maps in production
+      new UglifyJsPlugin({
+        cache: true,
+        parallel: true,
+        uglifyOptions: {
+          compress: true,
+          mangle: true,
+          ecma: 5,
+        },
+        sourceMap: true
+      })
+    ];
+
+
     config.plugins.push(
-      new webpack.optimize.UglifyJsPlugin({
-        mangle: false,
-        compress: true,
-        compressor: { warnings: false },
-        sourceMap: false
-      }),
       new webpack.LoaderOptionsPlugin({
         // Let loaders know that we're in minification mode
         minimize: true

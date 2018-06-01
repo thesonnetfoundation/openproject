@@ -53,8 +53,8 @@ See docs/COPYRIGHT.rdoc for more details.
   <%= render 'common/favicons' %>
   <%= stylesheet_link_tag 'openproject', media: "all" %>
 
-  <%# Include CLI assets (development) or prod build assets %>
-  <%= include_frontend_assets %>
+  <%# Include CLI assets (development) or prod build assets (not needed on ngtools/webpack) %>
+  <%#= include_frontend_assets %>
 
   <%= javascript_include_tag 'application' %>
   <%= javascript_include_tag "locales/#{I18n.locale}" %>

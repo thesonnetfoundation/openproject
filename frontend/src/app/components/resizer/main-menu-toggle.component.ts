@@ -58,8 +58,8 @@ export class MainMenuToggleComponent implements OnInit, OnDestroy {
   toggleTitle:string = "";
   showNavigation:boolean;
 
-  constructor(readonly toggleService:MainMenuToggleService,
-              readonly cdRef:ChangeDetectorRef) {
+  constructor(public readonly toggleService:MainMenuToggleService,
+              protected cdRef:ChangeDetectorRef) {
   }
 
   ngOnInit() {

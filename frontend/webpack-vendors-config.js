@@ -39,8 +39,10 @@ var bundle_output = path.resolve(output_root, 'bundles')
 
 function getWebpackVendorsConfig() {
   var config = {
+    mode: mode,
+
     entry: {
-      vendors: [path.resolve(__dirname, 'app', 'vendors.js')]
+      vendors: [path.resolve(__dirname, 'src', 'app', 'init-vendors.js')]
     },
 
     output: {
@@ -84,13 +86,6 @@ function getWebpackVendorsConfig() {
     // Add compression and optimization plugins
     // to the webpack build.
     config.plugins.push(
-      new webpack.optimize.UglifyJsPlugin({
-        mangle: true,
-        compress: true,
-        compressor: { warnings: false },
-        sourceMap: false,
-        exclude: /\.min\.js$/
-      }),
       new webpack.LoaderOptionsPlugin({
         // Let loaders know that we're in minification mode
         minimize: true

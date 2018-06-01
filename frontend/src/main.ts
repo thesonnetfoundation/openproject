@@ -1,8 +1,8 @@
-import {OpenProjectModule} from 'core-app/angular4-modules';
 import {enableProdMode} from '@angular/core';
 import * as jQuery from "jquery";
 import {environment} from './environments/environment';
-import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
+import {platformBrowser} from "@angular/platform-browser";
+import {AppModule} from "core-app/app.module";
 
 (window as any).global = window;
 
@@ -18,8 +18,8 @@ if (environment.production) {
 
 jQuery(function () {
 // Due to the behaviour of the Edge browser we need to wait for 'DOM ready'
-  platformBrowserDynamic()
-    .bootstrapModule(OpenProjectModule)
+  platformBrowser()
+    .bootstrapModule(AppModule)
     .then(platformRef => {
       jQuery('body').addClass('__ng2-bootstrap-has-run');
     });

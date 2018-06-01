@@ -61,9 +61,9 @@ export class MainMenuResizerComponent implements OnInit, OnDestroy {
 
   private subscription:Subscription;
 
-  constructor(readonly toggleService:MainMenuToggleService,
-              readonly cdRef:ChangeDetectorRef,
-              readonly elementRef:ElementRef) {
+  constructor(public readonly toggleService:MainMenuToggleService,
+              protected cdRef:ChangeDetectorRef,
+              private elementRef:ElementRef) {
   }
 
   ngOnInit() {
